@@ -7,6 +7,9 @@ import (
 // Variable represents any non-terminal in a grammar
 type Variable string
 
+// Terminal represents any terminal in a grammar
+type Terminal string
+
 // Symbol represents a RuleRef or string
 type Symbol any
 
@@ -25,8 +28,10 @@ type RuleRef struct {
 }
 
 type Grammar struct {
-	rules map[Variable][]*Expr
-	first Variable
+	rules     map[Variable][]*Expr
+	first     Variable
+	terminals []Terminal
+	variables []Variable
 }
 
 func (g *Grammar) Rules() map[Variable][]*Expr {
@@ -43,6 +48,8 @@ func (g *Grammar) FirstRule() Variable {
 
 func (g *Grammar) String() string {
 	var s string
+	s += fmt.Sprintf("Terminals: %v\n", g.terminals)
+	s += fmt.Sprintf("Variables: %v\n", g.variables)
 	for v, exprs := range g.Rules() {
 		s += fmt.Sprintf("%s -> %s", v, exprs[0])
 		for _, expr := range exprs[1:] {
@@ -80,6 +87,8 @@ func Ref(v Variable) RuleRef {
 
 func NewGrammar(rules []Rule) (*Grammar, error) {
 	ruleMap := make(map[Variable][]*Expr, len(rules))
+	var variables []Variable
+	var terminals []Terminal
 
 	// Init map
 	for _, rule := range rules {
@@ -87,11 +96,20 @@ func NewGrammar(rules []Rule) (*Grammar, error) {
 			ruleMap[rule.Variable] = make([]*Expr, 0)
 		}
 		ruleMap[rule.Variable] = append(ruleMap[rule.Variable], &rule.Expr)
+
+		variables = append(variables, rule.Variable)
+		for _, sym := range rule.Expr {
+			if term, ok := sym.(string); ok {
+				terminals = append(terminals, Terminal(term))
+			}
+		}
 	}
 
 	g := &Grammar{
-		rules: ruleMap,
-		first: rules[0].Variable,
+		rules:     ruleMap,
+		first:     rules[0].Variable,
+		variables: variables,
+		terminals: terminals,
 	}
 	return g, nil
 }
