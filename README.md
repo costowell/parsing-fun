@@ -2,6 +2,10 @@
 
 Parsing is cool! I want to understand it better by implementing a few of these algorithms.
 
+## Algorithms
+
+- [Earley Parser](https://en.wikipedia.org/wiki/Earley_parser)
+
 ## Implementation
 
 ### Why golang?
