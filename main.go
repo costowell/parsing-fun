@@ -4,22 +4,28 @@ import (
 	"fmt"
 
 	. "github.com/costowell/parsing-fun/common"
-	"github.com/costowell/parsing-fun/llrecurse"
+	"github.com/costowell/parsing-fun/earley"
 )
 
 func test(parser Parser, input string) {
-	fmt.Printf("Evaluating string '%s'... ", input)
-	if parser.Parse(input) {
-		fmt.Println("Success!")
-	} else {
-		fmt.Println("Failed")
+	fmt.Printf("Evaluating string '%s'...\n", input)
+	if err := parser.Parse(input); err != nil {
+		fmt.Printf("Failed: %s\n", err.Error())
+		return
 	}
+	fmt.Println("Success!")
 }
 
 func main() {
 	rules := []Rule{
-		NewRule("a", Expr{Ref("a"), "a"}),
-		NewRule("a", Expr{""}),
+		NewRule("S", Expr{Ref("S"), "+", Ref("M")}),
+		NewRule("S", Expr{Ref("M")}),
+		NewRule("M", Expr{Ref("M"), "*", Ref("T")}),
+		NewRule("M", Expr{Ref("T")}),
+		NewRule("T", Expr{"1"}),
+		NewRule("T", Expr{"2"}),
+		NewRule("T", Expr{"3"}),
+		NewRule("T", Expr{"4"}),
 	}
 	g, err := NewGrammar(rules)
 	if err != nil {
@@ -28,6 +34,10 @@ func main() {
 	}
 	fmt.Println(g)
 
-	parser := llrecurse.New(g)
-	test(parser, "a")
+	parser := earley.New(g)
+	test(parser, "2+3*4")
+	// test(parser, "b")
+	// test(parser, "aaaaaaaaaaaaaab")
+	// test(parser, "abbbbbbbbbbbbbb")
+	// test(parser, "ababababababab")
 }
