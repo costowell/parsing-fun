@@ -139,7 +139,7 @@ func (p *realParser) Parse(input string) error {
 		}
 	}
 	p.PrintState()
-	if !p.S[len(p.S)-1].Exists(finalState) || len(p.S) != len(input)+1 {
+	if !p.S[len(p.S)-1].Contains(finalState) || len(p.S) != len(input)+1 {
 		p.PrintState()
 		return errors.New("State did not end with completion")
 	}
