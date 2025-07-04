@@ -9,15 +9,24 @@ import (
 )
 
 type realParser struct {
-	gram *Grammar
-	S    []OrderedSet[State]
+	gram      *Grammar
+	S         []OrderedSet[State]
+	BT        map[State][]*State
+	ruleOrder map[*Expr]*int
 }
 
-func (p *realParser) InsertState(k int, state State) {
-	for i := len(p.S) - 1; i < k; i++ {
+func (p *realParser) InsertBT(state State, completedBy *State) {
+	if _, ok := p.BT[state]; !ok {
+		p.BT[state] = make([]*State, 0)
+	}
+	p.BT[state] = append(p.BT[state], completedBy)
+}
+
+func (p *realParser) InsertState(state State) {
+	for i := len(p.S) - 1; i < state.k; i++ {
 		p.S = append(p.S, NewOrderedSet[State]())
 	}
-	p.S[k].Insert(state)
+	p.S[state.k].Insert(state)
 }
 
 func (p *realParser) Predict(k int, state State) {
@@ -30,8 +39,9 @@ func (p *realParser) Predict(k int, state State) {
 		return
 	}
 
-	for _, production := range p.gram.GetRule(ref.Variable) {
-		p.InsertState(k, State{
+	for _, production := range p.gram.RulesMap[ref.Variable] {
+		p.InsertState(State{
+			k:              k,
 			variable:       ref.Variable,
 			rule:           production,
 			position:       0,
@@ -51,7 +61,11 @@ func (p *realParser) Scan(k int, input string, state State) bool {
 	}
 	_, found := strings.CutPrefix(input, ref)
 	if found {
-		p.InsertState(k+1, state.IncrementPosition())
+		s := state.IncrementPosition().IncrementK()
+		for _, btState := range p.BT[state] {
+			p.InsertBT(s, btState)
+		}
+		p.InsertState(s)
 		return true
 	}
 	return false
@@ -63,26 +77,33 @@ func (p *realParser) Complete(k int, state State) {
 	}
 	for _, kState := range p.S[state.originPosition].Data {
 		if ref, ok := kState.NextSym().(RuleRef); ok && ref.Variable == state.variable {
-			p.InsertState(k, kState.IncrementPosition())
+			newKState := kState.IncrementPosition()
+			newKState.k = k
+			for _, btState := range p.BT[kState] {
+				p.InsertBT(newKState, btState)
+			}
+			p.InsertBT(newKState, &state)
+			p.InsertState(newKState)
 		}
 	}
 }
 
-func (p *realParser) Parse(input string) error {
+func (p *realParser) Parse(input string) ([]int, error) {
 	p.S = make([]OrderedSet[State], 0)
+	p.BT = make(map[State][]*State)
 
 	// _P -> •S
 	startState := State{
+		k:              0,
 		variable:       "_P",
-		rule:           &Expr{Ref(p.gram.FirstRule())},
+		rule:           &Expr{Ref(p.gram.StartVariable())},
 		position:       0,
 		originPosition: 0,
 	}
 	// _P -> S•
-	finalState := startState.IncrementPosition()
 
 	// Add the first state
-	p.InsertState(0, startState)
+	p.InsertState(startState)
 
 	// maxK := len(p.input)
 	for k := 0; k >= 0; k++ {
@@ -108,12 +129,36 @@ func (p *realParser) Parse(input string) error {
 		}
 	}
 	p.PrintState()
+
+	finalState := startState.IncrementPosition()
+	finalState.k = len(p.S) - 1
+
 	if !p.S[len(p.S)-1].Contains(finalState) || len(p.S) != len(input)+1 {
-		p.PrintState()
-		return errors.New("State did not end with completion")
+		return nil, errors.New("State did not end with completion")
 	}
 
-	return nil
+	return p.PrintBT(finalState), nil
+}
+
+func (p *realParser) PrintBT(state State) []int {
+	var leftParse []int
+	var i int
+
+	if ruleNum, ok := p.ruleOrder[state.rule]; ok {
+		leftParse = append(leftParse, *ruleNum)
+	}
+
+	states := p.BT[state]
+	for _, sym := range *state.rule {
+		switch v := sym.(type) {
+		case string:
+			fmt.Print(v)
+		case RuleRef:
+			leftParse = append(leftParse, p.PrintBT(*states[i])...)
+			i++
+		}
+	}
+	return leftParse
 }
 
 func (p *realParser) PrintState() {
@@ -123,10 +168,20 @@ func (p *realParser) PrintState() {
 			fmt.Println(state.String())
 		}
 	}
+
+	fmt.Println("Completed:")
+	for key, value := range p.BT {
+		fmt.Printf("%+v %+v\n", key.String(), value)
+	}
 }
 
 func New(gram *Grammar) Parser {
+	ruleOrder := make(map[*Expr]*int)
+	for k, rule := range gram.Rules {
+		ruleOrder[&rule.Expr] = &k
+	}
 	return &realParser{
-		gram: gram,
+		gram:      gram,
+		ruleOrder: ruleOrder,
 	}
 }

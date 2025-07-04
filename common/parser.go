@@ -1,5 +1,5 @@
 package common
 
 type Parser interface {
-	Parse(input string) error
+	Parse(input string) ([]int, error)
 }

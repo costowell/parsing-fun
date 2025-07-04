@@ -6,6 +6,7 @@ import (
 )
 
 type State struct {
+	k              int
 	variable       Variable
 	rule           *Expr
 	position       int
@@ -30,11 +31,22 @@ func (s *State) String() string {
 	if len(*s.rule) == s.position {
 		ruleString += positionMarker
 	}
-	return fmt.Sprintf("(%s -> %s, %d)", s.variable, ruleString, s.originPosition)
+	return fmt.Sprintf("(%s -> %s, oP:%d, k:%d)", s.variable, ruleString, s.originPosition, s.k)
 }
 
-func (s *State) IncrementPosition() State {
+func (s State) IncrementK() State {
 	return State{
+		k:              s.k + 1,
+		variable:       s.variable,
+		rule:           s.rule,
+		position:       s.position,
+		originPosition: s.originPosition,
+	}
+}
+
+func (s State) IncrementPosition() State {
+	return State{
+		k:              s.k,
 		variable:       s.variable,
 		rule:           s.rule,
 		position:       s.position + 1,
