@@ -137,10 +137,10 @@ func (p *realParser) Parse(input string) ([]int, error) {
 		return nil, errors.New("State did not end with completion")
 	}
 
-	return p.PrintBT(finalState), nil
+	return p.GenerateLeftParse(finalState), nil
 }
 
-func (p *realParser) PrintBT(state State) []int {
+func (p *realParser) GenerateLeftParse(state State) []int {
 	var leftParse []int
 	var i int
 
@@ -154,7 +154,7 @@ func (p *realParser) PrintBT(state State) []int {
 		case string:
 			fmt.Print(v)
 		case RuleRef:
-			leftParse = append(leftParse, p.PrintBT(*states[i])...)
+			leftParse = append(leftParse, p.GenerateLeftParse(*states[i])...)
 			i++
 		}
 	}
