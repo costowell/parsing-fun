@@ -6,3 +6,21 @@
     - [ ] Lexer interface
     - [ ] Implement Lexer
 - [x] Proper testing
+- [ ] Grammar transformations
+    - [ ] CNF
+    - [ ] GNF
+    - [ ] Remove left recurion
+    - [ ] Remove cycles
+    - [ ] Remove epsilon-productions
+    - [ ] Remove useless symbols
+        - [ ] Remove unproductive symbols
+        - [ ] Remove unreachable symbols
+- [ ] Grammar properties
+    - [ ] Is regular?
+    - [ ] Is left recursive?
+    - [ ] Is proper?
+        - [ ] Has useless symbols?
+            - [ ] Has unproductive symbols?
+            - [ ] Has unreachable symbols?
+        - [ ] Is cycle-free?
+        - [ ] Is epsilon-free?
