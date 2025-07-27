@@ -57,7 +57,12 @@ func (e *Expr) String() string {
 			s += fmt.Sprintf("'%s' ", str)
 			continue
 		}
-		return "FAILED_PARSE "
+		term, ok := sym.(Terminal)
+		if ok {
+			s += fmt.Sprintf("'%s' ", term)
+			continue
+		}
+		return "UNKNOWN_SYM "
 	}
 	return s
 }
@@ -70,6 +75,15 @@ type Rule struct {
 
 func (r *Rule) String() string {
 	return fmt.Sprintf("%s -> %s", r.Variable, r.Expr.String())
+}
+
+func (r *Rule) Copy() Rule {
+	expr := make(Expr, len(r.Expr))
+	copy(expr, r.Expr)
+	return Rule{
+		Variable: r.Variable,
+		Expr:     expr,
+	}
 }
 
 func NewRule(v Variable, expr Expr) Rule {
@@ -94,8 +108,8 @@ func Ref(v Variable) RuleRef {
 type Grammar struct {
 	Rules     []*Rule
 	RulesMap  map[Variable][]*Expr
-	Terminals []Terminal
-	Variables []Variable
+	Terminals OrderedSet[Terminal]
+	Variables OrderedSet[Variable]
 }
 
 func (g *Grammar) EvalLeftParse(leftParse []int) (string, error) {
@@ -145,8 +159,8 @@ func (g *Grammar) String() string {
 func NewGrammar(rules []Rule) (*Grammar, error) {
 	ruleMap := make(map[Variable][]*Expr, len(rules))
 	variableMap := make(map[Variable]bool)
-	var variables []Variable
-	var terminals []Terminal
+	terminals := NewOrderedSet[Terminal]()
+	variables := NewOrderedSet[Variable]()
 	var rulesP []*Rule
 
 	// Init map
@@ -158,11 +172,11 @@ func NewGrammar(rules []Rule) (*Grammar, error) {
 		variableMap[rule.Variable] = true
 		rulesP = append(rulesP, &rule)
 
-		variables = append(variables, rule.Variable)
+		variables.Insert(rule.Variable)
 		for _, sym := range rule.Expr {
 			switch v := sym.(type) {
 			case string:
-				terminals = append(terminals, Terminal(v))
+				terminals.Insert(Terminal(v))
 			case RuleRef:
 				if _, ok := variableMap[v.Variable]; !ok {
 					variableMap[v.Variable] = false

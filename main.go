@@ -8,24 +8,48 @@ import (
 )
 
 func main() {
-	rules := []Rule{
-		NewRule("S", Expr{Ref("S"), "+", Ref("M")}),
-		NewRule("S", Expr{Ref("M")}),
-		NewRule("M", Expr{Ref("M"), "*", Ref("T")}),
-		NewRule("M", Expr{Ref("T")}),
-		NewRule("T", Expr{"1"}),
-		NewRule("T", Expr{"2"}),
-		NewRule("T", Expr{"3"}),
-		NewRule("T", Expr{"4"}),
+	_ = []Rule{
+		NewRule("S", Expr{"a", Ref("S"), "a"}),
+		NewRule("S", Expr{"b", Ref("S"), "b"}),
+		NewRule("S", Expr{}),
+		NewRule("S", Expr{"a"}),
+		NewRule("S", Expr{"b"}),
 	}
-	g, err := NewGrammar(rules)
+	rulesB := []Rule{
+		NewRule("S0", Expr{Ref("Na"), Ref("A02")}),
+		NewRule("S0", Expr{Ref("Nb"), Ref("A12")}),
+		NewRule("S0", Expr{"a"}),
+		NewRule("S0", Expr{"b"}),
+		NewRule("A12", Expr{Ref("_S"), Ref("Nb")}),
+		NewRule("A12", Expr{"b"}),
+		NewRule("Nb", Expr{"b"}),
+		NewRule("Na", Expr{"a"}),
+		NewRule("_S", Expr{Ref("Na"), Ref("A02")}),
+		NewRule("_S", Expr{Ref("Nb"), Ref("A12")}),
+		NewRule("_S", Expr{"a"}),
+		NewRule("_S", Expr{"b"}),
+		NewRule("A02", Expr{Ref("_S"), Ref("Na")}),
+		NewRule("A02", Expr{"a"}),
+	}
+	g, err := NewGrammar(rulesB)
 	if err != nil {
-		fmt.Printf("error creating grammar: %s", err.Error())
+		fmt.Println("error creating grammar: ", err.Error())
 		return
 	}
 	fmt.Println(g)
+	cnf, err := g.ToCNF()
+	if err != nil {
+		fmt.Println("error creating CNF grammar: ", err.Error())
+		return
+	}
+	fmt.Println("-------------------------")
+	fmt.Println(cnf.String())
 
 	parser := earley.New(g)
-
-	parser.Parse("2")
+	leftParse, err := parser.Parse("ababa")
+	if err != nil {
+		fmt.Println("error parsing CNF grammar: ", err.Error())
+		return
+	}
+	fmt.Println("Left Parse: ", leftParse)
 }

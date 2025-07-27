@@ -24,3 +24,5 @@
             - [ ] Has unreachable symbols?
         - [ ] Is cycle-free?
         - [ ] Is epsilon-free?
+- [ ] Disallow empty string
+  - note: a nullable rule is one with an empty expr not an expr with ""
